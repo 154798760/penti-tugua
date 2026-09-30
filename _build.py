@@ -43,11 +43,13 @@ def pick_title(it):
 def pick_body(it, title):
     b = (it.get('body') or '').strip()
     ocr = (it.get('ocr') or '').strip()
+    img_desc = (it.get('img_desc') or '').strip()
     if not b:
-        # 纯图条目：用 OCR 文本总结图中文字
-        if ocr:
-            ocr2 = re.sub(r'\s+', ' ', ocr).strip()
-            return ocr2[:150] or '配图'
+        # 纯图条目：优先 OCR 文字，其次人工视觉描述，都没有才标"配图"
+        src = ocr or img_desc
+        if src:
+            src2 = re.sub(r'\s+', ' ', src).strip()
+            return src2[:400] or '配图'
         return '配图'
     if (it.get('title') or '').strip().startswith('@') or len((it.get('title') or '').strip()) < 6:
         parts = re.split(r'[\n。]', b, 1)
@@ -60,7 +62,14 @@ def pick_body(it, title):
         if pos >= 0:
             b = b[pos + len(head):].lstrip(' ，。')
     b = re.sub(r'\s+', ' ', b).strip()
-    return b[:150] or '配图'
+    if not b:
+        # 去重后为空（正文即标题本身）→ 回退图片 OCR/描述
+        src = ocr or img_desc
+        if src:
+            src2 = re.sub(r'\s+', ' ', src).strip()
+            return src2[:400] or '配图'
+        return '配图'
+    return b[:400] or '配图'
 
 # 国际强词（政治/地缘主体，命中即国际）；弱词参与分数竞争
 INTL_STRONG = ['特朗普','拜登','白宫','国会','五角大楼','普京','俄罗斯','乌克兰','泽连斯基','伊朗','以色列','中东','胡塞','也门','沙特','土耳其','叙利亚','伊拉克','北约','欧盟','朝鲜','金正恩','国事访问','华盛顿','莫斯科','基辅','俄乌','美伊','联合国']

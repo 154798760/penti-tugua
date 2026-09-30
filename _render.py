@@ -85,19 +85,37 @@ TEMPLATE = u'''<!DOCTYPE html>
   .panel-line{height:2px;background:var(--sec);opacity:.25;margin:14px 0 20px}
 
   /* 条目 */
-  .items{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  .item{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--sec);border-radius:0 8px 8px 0;padding:12px 15px;transition:background .18s;break-inside:avoid}
+  .items{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+  .item{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--sec);border-radius:0 8px 8px 0;padding:12px 15px;transition:background .18s;break-inside:avoid;cursor:pointer;position:relative}
   .item:hover{background:var(--sec-soft)}
   .item-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
   .item-head .src{flex-shrink:0}
   .item .src{font-size:11.5px;font-weight:500;letter-spacing:.05em;opacity:.95}
   .item h3{font-family:"Noto Serif SC",serif;font-weight:700;font-size:14.5px;line-height:1.45;margin:2px 0 4px}
-  .item p{font-size:12.8px;color:#4A4F58;line-height:1.6}
-  .src-link{font-size:11px;color:var(--ink-2);text-decoration:none;white-space:nowrap;border-bottom:1px dashed var(--line);transition:color .15s,border-color .15s}
+  .item p.clamp{display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden;font-size:12.8px;color:#4A4F58;line-height:1.6}
+  .item p.full{font-size:12.8px;color:#4A4F58;line-height:1.6}
+  .item.has-more::after{content:"… 点击查看全文";position:absolute;right:10px;bottom:6px;font-size:11px;color:var(--sec);background:linear-gradient(90deg,transparent,var(--card) 30%);padding:2px 6px 2px 14px;pointer-events:none}
+  .item.has-more p.clamp{position:relative}
+  .src-link{font-size:11px;color:var(--ink-2);text-decoration:none;white-space:nowrap;border-bottom:1px dashed var(--line);transition:color .15s,border-color .15s;position:relative;z-index:2}
   .src-link:hover{color:var(--sec);border-color:var(--sec)}
   .item.full{grid-column:1/-1}
   .src-mon{color:var(--blue)} .src-tue{color:var(--green)} .src-wed{color:var(--purple)} .src-thu{color:var(--red)}
   .src-fri{color:var(--amber)} .src-sat{color:#3E7D8C} .src-sun{color:#2F6B7A}
+
+  /* 全文弹层 */
+  .modal-mask{position:fixed;inset:0;background:rgba(20,22,28,.62);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;visibility:hidden;transition:opacity .18s}
+  .modal-mask.open{opacity:1;visibility:visible}
+  .modal{background:var(--paper);max-width:640px;width:100%;max-height:82vh;border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.35);display:flex;flex-direction:column;transform:translateY(10px);transition:transform .18s}
+  .modal-mask.open .modal{transform:translateY(0)}
+  .modal-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 20px 12px;border-bottom:1px solid var(--line)}
+  .modal-tag{font-size:12px;color:var(--sec);font-weight:600;letter-spacing:.06em}
+  .modal-close{background:none;border:none;font-size:22px;line-height:1;color:var(--ink-2);cursor:pointer;padding:4px 8px;border-radius:6px}
+  .modal-close:hover{color:var(--ink);background:var(--line)}
+  .modal-body{overflow-y:auto;padding:18px 20px 22px}
+  .modal h3{font-family:"Noto Serif SC",serif;font-weight:700;font-size:18px;line-height:1.5;margin-bottom:12px}
+  .modal p{font-size:14.5px;line-height:1.9;color:#33363D;white-space:pre-wrap;word-break:break-word}
+  .modal-src{margin-top:16px;font-size:12.5px}
+  .modal-src a{color:var(--sec);text-decoration:none;border-bottom:1px dashed var(--line)}
 
   /* 页脚 */
   footer{background:var(--ink);color:#A9AEBB;margin-top:20px}
@@ -147,6 +165,20 @@ __DAY_BUTTONS__
 <main class="wrap" id="top">
   <div id="panels"></div>
 </main>
+
+<div class="modal-mask" id="modal-mask" role="dialog" aria-modal="true" aria-label="条目全文">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-tag" id="modal-tag"></div>
+      <button class="modal-close" id="modal-close" aria-label="关闭">×</button>
+    </div>
+    <div class="modal-body">
+      <h3 id="modal-title"></h3>
+      <p id="modal-body-text"></p>
+      <div class="modal-src" id="modal-src"></div>
+    </div>
+  </div>
+</div>
 
 <footer>
   <div class="footer-inner">
@@ -201,17 +233,30 @@ function renderDay(dateStr){
       + '<div class="panel-head"><div class="panel-mark">' + c.mark + '</div>'
       + '<div class="panel-title">' + c.name + '<span>' + c.sub + ' · ' + items.length + ' 条</span></div></div>'
       + '<div class="panel-line"></div><div class="items">';
-    items.forEach(function(it){
+    items.forEach(function(it, i2){
       var wd = dayOf(dateStr);
       var full = items.length === 1 ? ' full' : '';
-      panels += '<article class="item' + full + '"><div><div class="item-head">'
+      var pcl = it.b.length > 90 ? 'clamp' : 'full';
+      panels += '<article class="item' + full + '" data-ci="' + ci + '" data-i="' + i2 + '" title="点击查看全文"><div><div class="item-head">'
         + '<div class="src src-' + ['sun','mon','tue','wed','thu','fri','sat'][new Date(+dateStr.slice(0,4), +dateStr.slice(4,6)-1, +dateStr.slice(6,8)).getDay()] + '">' + wd + ' · ' + (it.n < 10 ? '0' : '') + it.n + '</div>'
         + '<a class="src-link" href="' + it.href + '" target="_blank" rel="noopener">来源</a></div>'
-        + '<h3>' + esc(it.t) + '</h3><p>' + esc(it.b) + '</p></div></article>';
+        + '<h3>' + esc(it.t) + '</h3><p class="' + pcl + '">' + esc(it.b) + '</p></div></article>';
     });
     panels += '</div></section>';
   });
   document.getElementById('panels').innerHTML = panels;
+  // 检测正文是否超出 6 行 → 标记"点击查看全文"
+  var itemsEls = document.querySelectorAll('.item p.clamp');
+  for (var i=0;i<itemsEls.length;i++){
+    var p = itemsEls[i];
+    if (p.scrollHeight > p.clientHeight + 2){
+      var art = p.closest('.item');
+      art.classList.add('has-more');
+    } else {
+      p.className = 'full';
+    }
+  }
+  bindModal();
   var btns = document.querySelectorAll('.day-btn');
   for (var i=0;i<btns.length;i++){
     btns[i].className = btns[i].getAttribute('data-date') === dateStr ? 'day-btn active' : 'day-btn';
@@ -226,6 +271,37 @@ function renderDay(dateStr){
 }
 
 function showDay(dateStr){ renderDay(dateStr); document.getElementById('top').scrollIntoView({behavior:'smooth'}); }
+
+var curCat = '', curItem = null;
+function bindModal(){
+  var arts = document.querySelectorAll('.item');
+  for (var i=0;i<arts.length;i++){
+    arts[i].onclick = function(e){
+      if (e.target.closest('.src-link')){ return; }
+      var ci = +this.getAttribute('data-ci'), ii = +this.getAttribute('data-i');
+      var it = DAYS.filter(function(d){ return d.date === cur; })[0].cats[CATS[ci].id][ii];
+      openModal(CATS[ci], it, cur);
+    };
+  }
+}
+function openModal(cat, it, dateStr){
+  var day = DAYS.filter(function(d){ return d.date === dateStr; })[0];
+  document.getElementById('modal-tag').textContent = day.label + '（' + day.week + '） · ' + cat.name + ' · 序号 ' + it.n;
+  document.getElementById('modal-title').textContent = it.t;
+  document.getElementById('modal-body-text').textContent = it.b;
+  document.getElementById('modal-src').innerHTML = '原文：<a href="' + it.href + '" target="_blank" rel="noopener">打开喷嚏网原文</a>';
+  document.getElementById('modal-mask').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal(){
+  document.getElementById('modal-mask').classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.getElementById('modal-close').addEventListener('click', closeModal);
+document.getElementById('modal-mask').addEventListener('click', function(e){
+  if (e.target === this){ closeModal(); }
+});
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape'){ closeModal(); } });
 
 window.addEventListener('hashchange', function(){
   var h = location.hash.slice(1);

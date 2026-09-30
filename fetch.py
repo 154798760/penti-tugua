@@ -72,7 +72,7 @@ def fetch_issue(iid):
                 lines = [ln.strip() for ln in re.split(r'[\n\r]', all_text) if ln.strip()]
                 plain = dec(lines[0]) if lines else ''
             body_text = ' '.join(g['texts'])
-            body_text = re.sub(r'\s+', ' ', body_text).strip()[:400]
+            body_text = re.sub(r'\s+', ' ', body_text).strip()[:1600]
             items.append({'n': n, 'title': dec(plain), 'body': body_text, 'imgs': g['imgs'], 'author': g['author']})
     return {'id': iid, 'title': title, 'items': items}
 
