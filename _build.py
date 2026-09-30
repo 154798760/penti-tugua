@@ -18,18 +18,36 @@ def clean(t):
 
 def pick_title(it):
     t = (it.get('title') or '').strip()
+    author = (it.get('author') or '').strip()
+    b = (it.get('body') or '').strip()
+    ocr = (it.get('ocr') or '').strip()
+    # 微博段子带作者：标题 = 作者 · 内容（内容不以作者开头时拼接）
+    if author and t and not t.startswith(author):
+        return (author + ' · ' + t)[:64]
+    # 标题为纯作者名（短、无标点）→ 作者 + 正文首句
+    if author and (len(t) <= 6 and not re.search(r'[\d，。！？、：:；;]', t) or t == author):
+        src = b or ocr
+        first = re.split(r'[\n。]', src)[0].strip() if src else ''
+        first = clean(first)
+        if first and first != t:
+            return (t + ' · ' + first)[:64]
     if len(t) >= 6 and not t.startswith('@'):
         return t[:64]
-    b = (it.get('body') or '').strip()
-    if not b:
-        return t[:64] or '（配图）'
-    first = re.split(r'[\n。]', b)[0].strip()
+    src = b or ocr
+    if not src:
+        return t[:64] or '（图片）'
+    first = re.split(r'[\n。]', src)[0].strip()
     first = clean(first)
-    return first[:64] or '（配图）'
+    return first[:64] or t[:64] or '（图片）'
 
 def pick_body(it, title):
     b = (it.get('body') or '').strip()
+    ocr = (it.get('ocr') or '').strip()
     if not b:
+        # 纯图条目：用 OCR 文本总结图中文字
+        if ocr:
+            ocr2 = re.sub(r'\s+', ' ', ocr).strip()
+            return ocr2[:150] or '配图'
         return '配图'
     if (it.get('title') or '').strip().startswith('@') or len((it.get('title') or '').strip()) < 6:
         parts = re.split(r'[\n。]', b, 1)
@@ -59,7 +77,8 @@ CATS = {
 PRIORITY = ['tech', 'intl', 'econ', 'cult', 'soc']
 
 def classify(it, title, body):
-    text = title + ' ' + (body or '')[:120]
+    ocr = (it.get('ocr') or '').strip()
+    text = title + ' ' + (body or '')[:120] + ' ' + ocr[:100]
     low = text.lower()
     scores = {}
     for cat, kws in CATS.items():

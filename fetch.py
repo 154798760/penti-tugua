@@ -3,7 +3,7 @@
 1) 抓列表页取最新 id；2) 已收录则无更新退出；3) 抓新期并入 _raw.json；
 4) 重建 data.json 与 index.html（保留最近 7 天）。
 """
-import io, json, os, re, subprocess, sys, urllib.request
+import html as _html, io, json, os, re, subprocess, sys, urllib.request
 
 BASE = os.path.dirname(os.path.abspath(__file__)) + '/'
 RAW = BASE + '_raw.json'
@@ -14,6 +14,36 @@ def get(url):
     req = urllib.request.Request(url, headers=UA)
     with urllib.request.urlopen(req, timeout=30) as r:
         return r.read()
+
+def dec(t):
+    return _html.unescape(t or '')
+
+def parse_seg(seg):
+    """按 <p> 序列解析一段条目；微博作者段（个人主页链接）开启新组，拆成多条。
+    话题标签（weibo?q=）不是作者，不拆分。"""
+    seg2 = re.sub(r'<br\s*/?>', ' ', seg)
+    ps = re.findall(r'<p[^>]*>(.*?)</p>', seg2, re.S)
+    groups = []
+    cur = None
+    for t in ps:
+        inner = re.sub(r'<[^>]+>', '', t).strip()
+        a = re.search(r'<a[^>]*href="([^"]+)"[^>]*>(.*?)</a>', t, re.S)
+        href = a.group(1) if a else ''
+        atext = dec(re.sub(r'<[^>]+>', '', a.group(2))).strip() if a else ''
+        is_author = a and atext and len(atext) <= 6 and not re.search(r'[\d，。！？、：:；;#]', atext) \
+            and ('weibo.com/u/' in href or 'm.weibo.cn/u/' in href)
+        if is_author:
+            cur = {'author': atext, 'texts': [], 'imgs': []}
+            groups.append(cur)
+            continue
+        if cur is None:
+            cur = {'author': '', 'texts': [], 'imgs': []}
+            groups.append(cur)
+        inner = dec(inner)
+        if inner:
+            cur['texts'].append(inner)
+        cur['imgs'] += re.findall(r'<img[^>]+src="([^"]+)"', t)
+    return groups
 
 def fetch_issue(iid):
     html = get('https://www.dapenti.com/blog/more.asp?name=xilei&id=%s' % iid).decode('gb2312', errors='replace')
@@ -31,20 +61,19 @@ def fetch_issue(iid):
     for k in range(1, len(parts) - 1, 2):
         n = int(parts[k])
         seg = parts[k + 1]
-        texts = re.findall(r'<p[^>]*>(.*?)</p>', seg, re.S)
-        plain = ''
-        for t in texts:
-            t2 = re.sub(r'<[^>]+>', '', t).strip()
-            if t2:
-                plain = t2
-                break
-        if not plain:
-            all_text = re.sub(r'<[^>]+>', ' ', seg)
-            lines = [ln.strip() for ln in re.split(r'[\n\r]', all_text) if ln.strip()]
-            plain = lines[0] if lines else ''
-        imgs = re.findall(r'<img[^>]+src="([^"]+)"', seg)
-        body_text = re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', seg)).strip()[:400]
-        items.append({'n': n, 'title': plain, 'body': body_text, 'imgs': imgs})
+        for g in parse_seg(seg):
+            plain = g['author'] or ''
+            for t in g['texts']:
+                if t.strip():
+                    plain = t.strip()
+                    break
+            if not plain:
+                all_text = re.sub(r'<[^>]+>', ' ', seg)
+                lines = [ln.strip() for ln in re.split(r'[\n\r]', all_text) if ln.strip()]
+                plain = dec(lines[0]) if lines else ''
+            body_text = ' '.join(g['texts'])
+            body_text = re.sub(r'\s+', ' ', body_text).strip()[:400]
+            items.append({'n': n, 'title': dec(plain), 'body': body_text, 'imgs': g['imgs'], 'author': g['author']})
     return {'id': iid, 'title': title, 'items': items}
 
 def main():

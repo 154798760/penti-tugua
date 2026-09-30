@@ -53,10 +53,6 @@ TEMPLATE = u'''<!DOCTYPE html>
   .issue-date{font-size:13px;color:#8C93A3;letter-spacing:.2em;margin-top:6px}
   .issue-title{font-family:"Noto Serif SC",serif;font-weight:900;font-size:clamp(24px,4.6vw,36px);line-height:1.4;margin:16px 0 4px;color:#fff}
   .issue-sub{font-size:13px;color:#8C93A3}
-  .num-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:26px;padding-top:22px;border-top:1px solid rgba(255,255,255,.14)}
-  .num-cell{padding:10px 12px 8px;border-left:3px solid var(--nc);background:rgba(255,255,255,.05)}
-  .num-cell b{display:block;font-family:"Noto Serif SC",serif;font-weight:700;font-size:clamp(19px,2.8vw,26px);line-height:1.2;color:#fff}
-  .num-cell span{font-size:12px;color:#A9AEBB}
 
   /* 日期切换 */
   .daybar{background:#1B1E24;border-top:1px solid rgba(255,255,255,.1)}
@@ -116,8 +112,6 @@ TEMPLATE = u'''<!DOCTYPE html>
 
   @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.item,.nav-inner a,.day-btn{transition:none}}
   @media (max-width:720px){
-    .num-strip{grid-template-columns:repeat(2,1fr)}
-    .num-cell:last-child{grid-column:1/-1}
     .daybar-inner{grid-template-columns:repeat(4,1fr)}
     .items{grid-template-columns:1fr}
     .footer-links{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -137,7 +131,6 @@ TEMPLATE = u'''<!DOCTYPE html>
     <div class="issue-date" id="hd-date"></div>
     <h1 class="issue-title" id="hd-title"></h1>
     <div class="issue-sub" id="hd-sub"></div>
-    <div class="num-strip" id="num-strip"></div>
   </div>
 </header>
 
@@ -195,11 +188,6 @@ function renderDay(dateStr){
   var total = 0;
   CATS.forEach(function(c){ total += day.cats[c.id].length; });
   document.getElementById('hd-sub').textContent = day.label + ' · ' + total + ' 条 · 五类标签：经济与民生 / 社会与健康 / 国际 / 科技与财经 / 文化娱乐';
-  var strip = '';
-  CATS.forEach(function(c){
-    strip += '<div class="num-cell" style="--nc:' + c.nc + '"><b>' + day.cats[c.id].length + '条</b><span>' + c.name + '</span></div>';
-  });
-  document.getElementById('num-strip').innerHTML = strip;
   var nav = '';
   CATS.forEach(function(c){
     nav += '<a href="#' + c.id + '" style="--nc:' + c.nc + '"><i></i>' + c.name + '</a>';
