@@ -97,6 +97,11 @@ def main():
     with io.open(RAW, 'w', encoding='utf-8') as f:
         json.dump(raw, f, ensure_ascii=False)
     print('fetched new issue', latest_id, issue['title'][:50], 'items:', len(issue['items']))
+    # 纯图条目 OCR（Actions 环境已装 tesseract；本地缺 tesseract 时自动跳过）
+    try:
+        subprocess.check_call([sys.executable, os.path.join(BASE, '_ocr.py')])
+    except Exception as e:
+        print('ocr skipped:', e)
     subprocess.check_call([sys.executable, os.path.join(BASE, '_build.py')])
     subprocess.check_call([sys.executable, os.path.join(BASE, '_render.py')])
     print('updated OK')
