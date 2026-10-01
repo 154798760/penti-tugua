@@ -20,8 +20,8 @@ def dec(t):
 
 def parse_seg(seg):
     """按 <p> 序列解析一段条目；微博作者段（个人主页链接）开启新组，拆成多条。
-    话题标签（weibo?q=）不是作者，不拆分。"""
-    seg2 = re.sub(r'<br\s*/?>', ' ', seg)
+    话题标签（weibo?q=）不是作者，不拆分。<br> 转真实换行，保留原文排版。"""
+    seg2 = re.sub(r'<br\s*/?>', '\n', seg)
     ps = re.findall(r'<p[^>]*>(.*?)</p>', seg2, re.S)
     groups = []
     cur = None
@@ -71,8 +71,8 @@ def fetch_issue(iid):
                 all_text = re.sub(r'<[^>]+>', ' ', seg)
                 lines = [ln.strip() for ln in re.split(r'[\n\r]', all_text) if ln.strip()]
                 plain = dec(lines[0]) if lines else ''
-            body_text = ' '.join(g['texts'])
-            body_text = re.sub(r'\s+', ' ', body_text).strip()[:1600]
+            body_text = '\n'.join(g['texts'])
+            body_text = body_text.strip()[:6000]
             items.append({'n': n, 'title': dec(plain), 'body': body_text, 'imgs': g['imgs'], 'author': g['author']})
     return {'id': iid, 'title': title, 'items': items}
 

@@ -143,7 +143,7 @@ TEMPLATE = u'''<!DOCTYPE html>
 <header class="masthead">
   <div class="masthead-inner">
     <div class="brand-row">
-      <div class="brand">喷嚏图卦<span class="dot">·</span></div>
+      <div class="brand">喷嚏图卦</div>
       <div class="slogan">每天一图卦，让我们更清楚地了解这个世界</div>
     </div>
     <div class="issue-date" id="hd-date"></div>
@@ -240,7 +240,7 @@ function renderDay(dateStr){
       panels += '<article class="item' + full + '" data-ci="' + ci + '" data-i="' + i2 + '" title="点击查看全文"><div><div class="item-head">'
         + '<div class="src src-' + ['sun','mon','tue','wed','thu','fri','sat'][new Date(+dateStr.slice(0,4), +dateStr.slice(4,6)-1, +dateStr.slice(6,8)).getDay()] + '">' + wd + ' · ' + (it.n < 10 ? '0' : '') + it.n + '</div>'
         + '<a class="src-link" href="' + it.href + '" target="_blank" rel="noopener">来源</a></div>'
-        + '<h3>' + esc(it.t) + '</h3><p class="' + pcl + '">' + esc(it.b) + '</p></div></article>';
+        + '<h3>' + esc(it.t) + '</h3><p class="' + pcl + '">' + esc(it.b.replace(/\\s+/g,' ')) + '</p></div></article>';
     });
     panels += '</div></section>';
   });
