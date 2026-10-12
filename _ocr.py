@@ -31,7 +31,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmp:
         for iid, v in raw.items():
             for it in v['items']:
-                if it.get('ocr'):
+                if it.get('ocr') or it.get('img_desc'):
                     continue
                 imgs = it.get('imgs') or []
                 if not imgs:
@@ -49,6 +49,10 @@ def main():
                 it['ocr'] = txt[:600] if txt.strip() else ''
                 done += 1
                 print('ocr', iid, 'n=', it['n'], '| chars:', len(it['ocr']))
+                # 每 10 条增量写盘，防止中途被杀丢进度
+                if done % 10 == 0:
+                    with io.open(RAW, 'w', encoding='utf-8') as f:
+                        json.dump(raw, f, ensure_ascii=False)
     with io.open(RAW, 'w', encoding='utf-8') as f:
         json.dump(raw, f, ensure_ascii=False)
     print('OCR done:', done)
