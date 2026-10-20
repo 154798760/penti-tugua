@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""合并最近7天喷嚏图卦数据：过滤敏感 + 自动五分类 + 生成 data.json"""
+"""合并最近30天喷嚏图卦数据：过滤敏感 + 自动五分类 + 生成 data.json"""
 import io, json, re, datetime, os
 
 BASE = os.path.dirname(os.path.abspath(__file__)) + '/'
@@ -106,13 +106,33 @@ def classify(it, title, body):
             return c
     return 'soc'
 
+def parse_date(title):
+    """从期标题解析日期：'【喷嚏图卦20261019】' -> date；个别期标题少一位数字（如 2261019）时尝试补 0。"""
+    m = re.search(r'图卦(\d{6,8})', title or '')
+    if not m:
+        return None
+    s = m.group(1)
+    if len(s) == 8:
+        try:
+            return datetime.date(int(s[:4]), int(s[4:6]), int(s[6:8]))
+        except ValueError:
+            return None
+    if len(s) == 7:
+        for i in range(1, 8):
+            t = s[:i] + '0' + s[i:]
+            try:
+                return datetime.date(int(t[:4]), int(t[4:6]), int(t[6:8]))
+            except ValueError:
+                continue
+    return None
+
 raw = load(RAW)
 # 从期标题自动解析日期：'【喷嚏图卦20260930】' -> 20260930
 raw_by_date = {}
 for iid, v in raw.items():
-    m = re.search(r'(\d{8})', v.get('title') or '')
-    if m:
-        raw_by_date[m.group(1)] = v
+    d = parse_date(v.get('title'))
+    if d:
+        raw_by_date[d.strftime('%Y%m%d')] = v
     else:
         raw_by_date.setdefault(iid, v)
 
@@ -124,7 +144,7 @@ if raw_by_date:
     if mxd > today:
         today = mxd
 days = []
-for i in range(6, -1, -1):
+for i in range(29, -1, -1):
     d = today - datetime.timedelta(days=i)
     days.append(d.strftime('%Y%m%d'))
 

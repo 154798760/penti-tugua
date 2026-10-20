@@ -18,7 +18,7 @@ json_str = json_str.replace('<', '\\u003c')
 day_buttons = '\n'.join(
     '<button class="day-btn%s" data-date="%s" onclick="showDay(\'%s\')"><b>%s</b><span>%s</span></button>'
     % (' active' if d['date'] == latest['date'] else '', d['date'], d['date'], d['label'], d['week'])
-    for d in days
+    for d in days[-7:]
 )
 
 TEMPLATE = u'''<!DOCTYPE html>
@@ -182,7 +182,7 @@ __DAY_BUTTONS__
 
 <footer>
   <div class="footer-inner">
-    <p>本页内容整理自喷嚏网·喷嚏图卦栏目原文（标题与摘要为转述，原文为准），点击条目"来源"可打开当日原文并定位到该条。数据保留最近 7 天，每日 18:00 自动更新。</p>
+    <p>本页内容整理自喷嚏网·喷嚏图卦栏目原文（标题与摘要为转述，原文为准），点击条目"来源"可打开当日原文并定位到该条。顶部可切换最近 7 天，底部可直达最近 30 天，每日 18:00 自动更新。</p>
     <div class="footer-links" id="footer-links"></div>
     <p style="margin-top:10px;color:#8C93A3" id="footer-note"></p>
   </div>
@@ -266,7 +266,7 @@ function renderDay(dateStr){
     links += '<div><span class="src">' + d.label + '</span><a href="https://www.dapenti.com/blog/more.asp?name=xilei&id=' + d.id + '" target="_blank" rel="noopener" title="' + esc(d.title) + '">' + esc(d.title) + '</a></div>';
   });
   document.getElementById('footer-links').innerHTML = links;
-  document.getElementById('footer-note').textContent = '喷嚏图卦 · ' + DAYS[0].label + ' – ' + DAYS[DAYS.length-1].label + ' 日报 · ' + DAYS.length + ' 期 · 五主题分类 · 每日 18:00 自动更新';
+  document.getElementById('footer-note').textContent = '喷嚏图卦 · 最近30天日报 · ' + DAYS.length + ' 期 · 五主题分类 · 每日 18:00 自动更新';
   history.replaceState(null, '', '#' + dateStr);
 }
 
